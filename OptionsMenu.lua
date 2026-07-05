@@ -99,7 +99,7 @@ end
 
 function OptionsMenu:loadGraphicElements()
     self.font = love.graphics.newFont(NONOGRAM_OPTIONS_FONT, NONOGRAM_OPTIONS_FONT_SIZE, "mono")
-    self.font:setFilter("nearest")
+    self.font:setFilter("nearest", "nearest")
 
     self.optionsMenuTexture = self:getTexture(TEXTURE_PATHS.optionsMenu)
     

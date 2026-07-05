@@ -97,7 +97,7 @@ function SelectMenu:loadGraphicElements()
     self.currentButtonIndex = 0
     self.buttons = {}
     self.font = love.graphics.newFont(NONOGRAM_SELECT_MENU_FONT, NONOGRAM_SELECT_MENU_FOTN_SIZE, "mono")
-    self.font:setFilter("nearest")
+    self.font:setFilter("nearest", "nearest")
 
     for _, name in ipairs(directoryItems) do
         path = self.currentFolder .. "/" .. name

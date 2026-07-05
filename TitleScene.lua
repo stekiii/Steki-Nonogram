@@ -30,7 +30,7 @@ function TitleScene:loadGraphicElements()
     love.graphics.setBackgroundColor(239/255, 220/255, 186/255)
 
     self.titleFont = love.graphics.newFont(NONOGRAM_TITLE_FONT, NONOGRAM_TITLE_FONT_SIZE, "mono")
-    self.titleFont:setFilter("nearest")
+    self.titleFont:setFilter("nearest", "nearest")
 
     self.titleText = {
         {{ 0, 0, 0 }, "NONOGRAM\nSTEKI"},
@@ -42,7 +42,7 @@ function TitleScene:loadGraphicElements()
     }
 
     self.buttonFont = love.graphics.newFont(NONOGRAM_BUTTON_FONT, NONOGRAM_BUTTON_FONT_SIZE, "mono")
-    self.buttonFont:setFilter("nearest")
+    self.buttonFont:setFilter("nearest", "nearest")
 
     table.insert(
         self.buttons,

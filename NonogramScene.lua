@@ -114,7 +114,7 @@ function NonogramScene:loadGraphicElements()
     local width, height = textureWidth, textureHeight
 
     self.nonogramHintFont = love.graphics.newFont(NONOGRAM_HINT_FIELD_CONSTANTS.NONOGRAM_HINT_FIELD_FONT, NONOGRAM_HINT_FIELD_CONSTANTS.NONOGRAM_HINT_FONT_SIZE, "mono")
-    self.nonogramHintFont:setFilter("nearest")
+    self.nonogramHintFont:setFilter("nearest", "nearest")
     local fontHeight = self.nonogramHintFont:getHeight()
 
     width, height =
@@ -498,7 +498,8 @@ end
 --]]
 
 function NonogramScene:loadNonogramFromFile()
-    local lineIter = io.lines(self.filePath)
+    -- local lineIter = io.lines(self.filePath) -- Worked on Windows...
+    local lineIter = love.filesystem.lines(self.filePath) -- Works on Linux
     
     local dimensions, rowHints, columnHints, matrixState, solution = {}, {}, {}, {}, {}
 
