@@ -5,6 +5,14 @@ local OptionsMenu = require 'OptionsMenu'
 local SelectMenu = require 'SelectMenu'
 
 local texturePaths = TEXTURE_PATHS
+local backgroundImage, quad
+
+local time = 0
+local xOffset, yOffset = 0, 0
+local scrollSpeedX = 20
+local scrollSpeedY = scrollSpeedX * 9 / 16
+local width, height = love.graphics.getDimensions()
+local imageWidth, imageHeight
 
 TitleScene = Scene:new{
     titleText = {},
@@ -113,6 +121,28 @@ function TitleScene:loadGraphicElements()
             border = NONOGRAM_BUTTON_BORDER
         }
     )
+
+    backgroundImage = love.graphics.newImage(texturePaths.titleBackgroundSmall)
+    backgroundImage:setFilter("nearest", "nearest")
+    backgroundImage:setWrap("repeat", "repeat")
+    imageWidth, imageHeight = backgroundImage:getDimensions()
+
+    quad = love.graphics.newQuad(0, 0, width, height, backgroundImage:getDimensions())
+
+    time = 0
+end
+
+function TitleScene:update(dt)
+    xOffset, yOffset = xOffset + (scrollSpeedX * dt), yOffset + (scrollSpeedY * dt)
+
+    if xOffset >= imageWidth then
+        xOffset = xOffset - imageWidth
+    end
+    if yOffset >= imageHeight then
+        yOffset = yOffset - imageHeight
+    end
+
+    quad:setViewport(xOffset, yOffset, width, height)
 end
 
 function TitleScene:handleMousePress(x, y, button)
@@ -145,6 +175,8 @@ function TitleScene:handleMouseMove(x, y)
 end
 
 function TitleScene:draw()
+    love.graphics.draw(backgroundImage, quad)
+
     love.graphics.printf(unpack(self.titleText))
 
     for _, button in ipairs(self.buttons) do

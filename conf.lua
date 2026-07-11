@@ -42,7 +42,11 @@ TEXTURE_PATHS = {
     saveButton0 = textureFolderPath .. "saveButton0.png",
     saveButton1 = textureFolderPath .. "saveButton1.png",
     createrScreenMenu = textureFolderPath .. "createScreenMenu.png",
-    solved = textureFolderPath .. "solved.png"
+    solved = textureFolderPath .. "solved.png",
+    titleBackground = textureFolderPath .. "titleBackground.png",
+    titleBackgroundSmall = textureFolderPath .. "titleBackgroundSmall.png",
+    nonogramSceneBackground = textureFolderPath .. "nonogramSceneBackground.png",
+    nonogramSceneBackgroundSmall = textureFolderPath .. "nonogramSceneBackgroundSmall.png"
 }
 
 FONTS_PATHS = {

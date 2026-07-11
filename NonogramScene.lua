@@ -18,6 +18,16 @@ local timerBasePeriod = 2/11
 
 local finalSolvedFieldPosition = {}
 
+local texturePaths = TEXTURE_PATHS
+local backgroundImage, quad
+
+local time = 0
+local xOffset, yOffset = 0, 0
+local scrollSpeedX = -25
+local scrollSpeedY = - (scrollSpeedX * 9 / 16) / 2
+local width, height = love.graphics.getDimensions()
+local imageWidth, imageHeight
+
 NonogramScene = Scene:new{
     nonogram = {},
     filePath = "",
@@ -288,7 +298,15 @@ function NonogramScene:loadGraphicElements()
         repetitions = numOfTimerRepetitions
     }
 
-    love.graphics.setBackgroundColor(1,0.8,0.8)
+    -- love.graphics.setBackgroundColor(1,0.8,0.8)
+    backgroundImage = love.graphics.newImage(texturePaths.nonogramSceneBackgroundSmall)
+    backgroundImage:setFilter("nearest", "nearest")
+    backgroundImage:setWrap("repeat", "repeat")
+    imageWidth, imageHeight = backgroundImage:getDimensions()
+
+    quad = love.graphics.newQuad(0, 0, width, height, backgroundImage:getDimensions())
+
+    time = 0
 end
 
 function NonogramScene:handleMousePress(x, y, button)
@@ -442,6 +460,17 @@ end
 
 ---[[
 function NonogramScene:update(dt)
+    xOffset, yOffset = xOffset + (scrollSpeedX * dt), yOffset + (scrollSpeedY * dt)
+
+    if xOffset >= imageWidth then
+        xOffset = xOffset - imageWidth
+    end
+    if yOffset >= imageHeight then
+        yOffset = yOffset - imageHeight
+    end
+
+    quad:setViewport(xOffset, yOffset, width, height)
+
     self.solvedImageAnimation:update(dt)
 
     if self.clearNonogramTimer:update(dt) then
@@ -674,6 +703,8 @@ function NonogramScene:initialize()
 end
 
 function NonogramScene:draw()
+    love.graphics.draw(backgroundImage, quad)
+
     local scale = self.scale
     local x, y = unpack(self.translationPosition)
 

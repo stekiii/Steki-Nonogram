@@ -30,4 +30,8 @@ function OverlayScene:drawOnTop()
     
 end
 
+function OverlayScene:update(dt)
+    self.overlaidScene:update(dt)
+end
+
 return OverlayScene
