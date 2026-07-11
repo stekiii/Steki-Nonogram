@@ -5,12 +5,18 @@ local NonogramHintField = require 'NonogramHintField'
 local NonogramFillField = require 'NonogramFillField'
 local NonogramHintValue = require 'NonogramHintValue'
 local Button = require 'Button'
+local Image = require 'Image'
+local Animation = require 'Animation'
+local Timer = require 'Timer'
 
 local scrollSpeedIncrease = 10
 local scrollSpeedDeceleration = 11
 local maxScrollSpeed = 30
 local minScrollSpeed = 0.1
 local hintConsts = NONOGRAM_HINT_FIELD_CONSTANTS
+local timerBasePeriod = 2/11
+
+local finalSolvedFieldPosition = {}
 
 NonogramScene = Scene:new{
     nonogram = {},
@@ -27,7 +33,9 @@ NonogramScene = Scene:new{
     hintValues = {},
     minScale = 0,
     maxScale = 0,
-    buttons = {}
+    buttons = {},
+
+    solved = false
 }
 
 function NonogramScene:new(o)
@@ -243,10 +251,41 @@ function NonogramScene:loadGraphicElements()
                 return
             end
 
-            local i = string.find(self.filePath, "/[%w.]*$") - 1
+            local i = string.find(self.filePath, "/[%w.%- ]*$") - 1
             local str = i and string.sub(self.filePath, 1, i) or ""
             Game:loadScene(SelectMenu:new{ currentFolder = str })
         end
+    }
+
+    self.solvedImageAnimation = Animation:new{
+        graphicElement = Image:new{
+            position = { 269, 360 },
+            texture = TEXTURE_PATHS.solved
+        },
+
+        animationTime = 1.2,
+        goalPosition = { 269, 281 },
+        movementFunctionY = function (x, c1, c3)
+            -- return x < 0.5 and (4 * x * x * x) or (1 - math.pow(-2 * x + 2, 3) / 2) -- ease in out cubic
+            -- return 1 - math.pow(1 - x, 3) -- ease out cubic
+
+            -- ease out back
+            -- local c1 = 1.70158;
+            -- local c3 = c1 + 1;
+
+            return 1 + c3 * math.pow(x - 1, 3) + c1 * math.pow(x - 1, 2);
+        end,
+        movementFunctionParametersY = {
+            1.70158,
+            2.70158
+        }
+    }
+
+    local numOfTimerRepetitions = self.nonogram.dimensions[1] + self.nonogram.dimensions[2] - 1 - 1 -- najduzi put je r + c - 1, a reseno polje se ignorise => -1
+
+    self.clearNonogramTimer = Timer:new{
+        goalTime = timerBasePeriod,
+        repetitions = numOfTimerRepetitions
     }
 
     love.graphics.setBackgroundColor(1,0.8,0.8)
@@ -279,6 +318,7 @@ function NonogramScene:handleMousePress(x, y, button)
 end
 
 function NonogramScene:handleMouseRelease(x, y, button)
+
     if button == 1 then
         for _, b in pairs(self.buttons) do
             if b:isClicked({ x, y }) then
@@ -338,6 +378,13 @@ end
 
 function NonogramScene:changeField(position, state)
     self.nonogram:changeField(position, state)
+    if not self.solved and self.nonogram:isSolved() then
+        self.solved = true
+        self.solvedImageAnimation:start()
+        self.clearNonogramTimer:start()
+        finalSolvedFieldPosition = position
+    end
+
     local acitons = self.actions
 
     if acitons.emptying or acitons.marking or acitons.crossing then
@@ -355,7 +402,6 @@ function NonogramScene:changeField(position, state)
     else
         acitons.crossing = true
     end
-
 
 end
 
@@ -396,6 +442,32 @@ end
 
 ---[[
 function NonogramScene:update(dt)
+    self.solvedImageAnimation:update(dt)
+
+    if self.clearNonogramTimer:update(dt) then
+        local currIter = self.clearNonogramTimer.timesFinished
+        local rows, cols
+        local nonogramField
+        for i = 0, currIter do
+            rows = { finalSolvedFieldPosition[1] - i, finalSolvedFieldPosition[1] + i }
+            cols = { finalSolvedFieldPosition[2] - (currIter - i), finalSolvedFieldPosition[2] + (currIter - i) }
+
+            for _, row in ipairs(rows) do
+                if row >= 1 and row <= self.nonogram.dimensions[1] then
+                    for _, col in ipairs(cols) do
+                        if col >= 1 and col <= self.nonogram.dimensions[2] then
+                            nonogramField = self.nonogramFields[(row - 1) * self.nonogram.dimensions[2] + col]
+                    
+                            if nonogramField.state == NonogramFieldState.Crossed then
+                                nonogramField:changeState(NonogramFieldState.Empty)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     if self.scrollSpeed ~= 0 then
         local scrollSpeed = self.scrollSpeed
         local oldScale = self.scale
@@ -628,9 +700,16 @@ function NonogramScene:draw()
 
     love.graphics.pop()
 
+    self:additionalDrawingBeforeButtons()
+
     for _, button in pairs(self.buttons) do
         button:draw()
     end
+
+    self.solvedImageAnimation:draw()
+end
+
+function NonogramScene:additionalDrawingBeforeButtons()
 end
 
 return NonogramScene

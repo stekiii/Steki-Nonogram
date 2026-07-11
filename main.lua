@@ -1,7 +1,7 @@
 local Game = require 'Game'
 local TitleScene = require 'TitleScene'
 
-local displayResolution = { 1920, 1080 }
+local displayResolution = { 960, 540 } -- { 1920, 1080 }
 local fullscreen = FULLSCREEN
 
 function love.load()

@@ -42,10 +42,6 @@ end
 
 function Nonogram:changeField(position, state)
     self.matrixState[(position[1] - 1) * self.dimensions[2] + position[2]] = state
-
-    if self:isSolved() then
-        print("SOLVED :3")
-    end
 end
 
 function Nonogram:getState(position)

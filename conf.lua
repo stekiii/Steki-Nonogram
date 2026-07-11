@@ -32,10 +32,17 @@ TEXTURE_PATHS = {
     optionsMenuButton1 = textureFolderPath .. "optionsMenuButton1.png",
     optionsMenuExit0 = textureFolderPath .. "optionsMenuExit0.png",
     optionsMenuExit1 = textureFolderPath .. "optionsMenuExit1.png",
-    selectButton = textureFolderPath .. "selectButton.png",
+    selectButtonFolder = textureFolderPath .. "selectButtonFolder.png",
+    selectButtonFile = textureFolderPath .. "selectButtonFile.png",
     plusButton = textureFolderPath .. "plusButton.png",
     minusButton = textureFolderPath .. "minusButton.png",
-    backButton = textureFolderPath .. "backButton.png"
+    plusButtonSmall = textureFolderPath .. "plusButtonSmall.png",
+    minusButtonSmall = textureFolderPath .. "minusButtonSmall.png",
+    backButton = textureFolderPath .. "backButton.png",
+    saveButton0 = textureFolderPath .. "saveButton0.png",
+    saveButton1 = textureFolderPath .. "saveButton1.png",
+    createrScreenMenu = textureFolderPath .. "createScreenMenu.png",
+    solved = textureFolderPath .. "solved.png"
 }
 
 FONTS_PATHS = {
@@ -63,6 +70,7 @@ MAX_WINDOW_HEIGHT = 0
 FULLSCREEN = false
 
 NONOGRAM_FOLDER_PATH = "nonograms"
+CUSTOM_NONOGRAM_FOLDER_PATH = NONOGRAM_FOLDER_PATH .. "/Custom Nonograms"
 
 NONOGRAM_SCALE_INCREMENT = 0.15
 
@@ -92,12 +100,16 @@ NONOGRAM_BUTTON_FONT = FONTS_PATHS.ka1
 NONOGRAM_BUTTON_FONT_SIZE = 31
 NONOGRAM_BUTTON_BORDER = 4
 
+NONOGRAM_SAVE_BUTTON_FONT_SIZE = 18
+
 NONOGRAM_OPTIONS_FONT = FONTS_PATHS.ks
 NONOGRAM_OPTIONS_FONT_SIZE = 31
 
-NONOGRAM_SELECT_MENU_FONT = FONTS_PATHS.kf
-NONOGRAM_SELECT_MENU_FOTN_SIZE = 20
+NONOGRAM_SELECT_MENU_FONT = FONTS_PATHS.ks
+NONOGRAM_SELECT_MENU_FONT_SIZE = 16
 
 function love.conf(t)
     -- t.identity = "saves"
+    -- t.window.vsync = 1
+    t.window.title = "Nonogram Steki"
 end

@@ -53,6 +53,10 @@ function NonogramField:changeState(state)
 end
 
 function NonogramField:handleMousePress(x, y, button)
+    if Game.currentScene.solved then
+        return
+    end
+
     local actions = Game.currentScene.actions
     local anyAction = actions.crossing or actions.emptying or actions.marking
 
@@ -72,6 +76,10 @@ function NonogramField:handleMousePress(x, y, button)
 end
 
 function NonogramField:handleMouseMove(x, y)
+    if Game.currentScene.solved then
+        return
+    end
+
     local scene = Game.currentScene
     local actions = scene.actions
 

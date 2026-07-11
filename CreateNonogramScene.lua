@@ -1,5 +1,8 @@
 local NonogramScene = require 'NonogramScene'
+local Image = require 'Image'
 local defaultDimensions = 3
+
+local texturePaths = TEXTURE_PATHS
 
 CreateNonogramScene = NonogramScene:new{
     nonogram = {},
@@ -24,37 +27,62 @@ function CreateNonogramScene:initialize()
         dimensions = { defaultDimensions, defaultDimensions }
     }
 
+    self.font = love.graphics.newFont(NONOGRAM_SELECT_MENU_FONT, NONOGRAM_SAVE_BUTTON_FONT_SIZE, "mono")
+    self.font:setFilter("nearest", "nearest")
+
     self.buttons.plusButtonRows = Button:new{
-        position = { 27, 36 },
-        texture1 = TEXTURE_PATHS.plusButton,
+        position = { 93, 86 },
+        texture1 = texturePaths.plusButtonSmall,
         pressFunction = function ()
             self:changeSize(self.nonogram.dimensions[1] + 1, self.nonogram.dimensions[2])
         end
     }
 
     self.buttons.minusButtonRows = Button:new{
-        position = { 27, 109 },
-        texture1 = TEXTURE_PATHS.minusButton,
+        position = { 33, 86 },
+        texture1 = texturePaths.minusButtonSmall,
         pressFunction = function ()
             self:changeSize(self.nonogram.dimensions[1] == 1 and 1 or self.nonogram.dimensions[1] - 1, self.nonogram.dimensions[2])
         end
     }
 
     self.buttons.plusButtonColumns = Button:new{
-        position = { 27, 210 },
-        texture1 = TEXTURE_PATHS.plusButton,
+        position = { 93, 272 },
+        texture1 = texturePaths.plusButtonSmall,
         pressFunction = function ()
             self:changeSize(self.nonogram.dimensions[1], self.nonogram.dimensions[2] + 1)
         end
     }
 
     self.buttons.minusButtonColumns = Button:new{
-        position = { 27, 282 },
-        texture1 = TEXTURE_PATHS.minusButton,
+        position = { 33, 272 },
+        texture1 = texturePaths.minusButtonSmall,
         pressFunction = function ()
             self:changeSize(self.nonogram.dimensions[1], self.nonogram.dimensions[2] == 1 and 1 or self.nonogram.dimensions[2] - 1)
         end
     }
+
+    self.menuImage = Image:new{
+        position = { 20, 20 },
+        texture = texturePaths.createrScreenMenu
+    }
+
+
+    self.buttons.saveButton =
+        Button:new{
+            position = { 508, 272 },
+            text = "Save",
+            font = self.font,
+            fontColor1 = { 0, 0, 0 },
+            -- fontColor2 = { 85/255, 190/255, 234/255 },
+            texture1 = texturePaths.saveButton0,
+            texture2 = texturePaths.saveButton1,
+            pressFunction = function ()
+                self:saveNonogram()
+                Game:loadScene(TitleScene:new{})
+            end,
+            border = NONOGRAM_BUTTON_BORDER
+        }
 
     self:loadGraphicElements()
 end
@@ -79,10 +107,10 @@ function CreateNonogramScene:changeSize(rows, columns)
             table.remove(self.nonogram.columnHints, columns + j)
         end
 
-        for _, val in ipairs(self.nonogram.matrixState) do
-            print(val)
-        end
-        print()
+        -- for _, val in ipairs(self.nonogram.matrixState) do
+        --     print(val)
+        -- end
+        -- print()
     end
 
     if rows > oldRows then
@@ -93,7 +121,7 @@ function CreateNonogramScene:changeSize(rows, columns)
             table.insert(self.nonogram.rowHints, {})
         end
     elseif rows < oldRows then
-        for i = rows - oldRows, 1, -1 do
+        for i = oldRows - rows, 1, -1 do
             for j = columns, 1, -1 do
                 table.remove(self.nonogram.matrixState, (rows + i - 1) * columns + j)
             end
@@ -106,12 +134,75 @@ end
 
 function CreateNonogramScene:draw()
     NonogramScene.draw(self)
-
-    -- for _, button in pairs(self.buttons) do
-    --     button:draw()
-    -- end
 end
 
+function CreateNonogramScene:additionalDrawingBeforeButtons()
 
+    self.menuImage:draw()
+
+    local texture = Game.currentScene:getTexture(self.menuImage.texture)
+
+    local text = "Rows"
+    love.graphics.print(
+        { { 0, 0, 0 }, text },
+        self.font,
+        self.menuImage.position[1] + (texture:getPixelWidth() - self.font:getWidth(text) - NONOGRAM_BUTTON_BORDER) / 2,
+        54
+    )
+
+    text = "Columns"
+    love.graphics.print(
+        { { 0, 0, 0 }, text },
+        self.font,
+        self.menuImage.position[2] + (texture:getPixelWidth() - self.font:getWidth(text) - NONOGRAM_BUTTON_BORDER) / 2,
+        240
+    )
+end
+
+function CreateNonogramScene:saveNonogram()
+    local customNonogramDir = CUSTOM_NONOGRAM_FOLDER_PATH
+    local info = love.filesystem.getInfo(customNonogramDir)
+
+    if not info or info.type ~= "directory" then
+        love.filesystem.createDirectory(customNonogramDir)
+    end
+
+    local fileName = string.format("%dx%d-", self.nonogram.dimensions[1], self.nonogram.dimensions[2]) .. os.date("%m.%y")
+    local items = love.filesystem.getDirectoryItems(customNonogramDir)
+    local numOfSameNameFiles = 0
+    for _, item in ipairs(items) do
+        if love.filesystem.getInfo(customNonogramDir .. "/" .. item).type == "file" and string.find(item, fileName, 1, true) then
+            numOfSameNameFiles = numOfSameNameFiles + 1
+        end
+    end
+
+    if numOfSameNameFiles > 0 then
+        local newFileName = fileName .. string.format(" (%d)", numOfSameNameFiles)
+        while love.filesystem.getInfo(customNonogramDir .. "/" .. newFileName .. ".txt") ~= nil do
+            numOfSameNameFiles = numOfSameNameFiles + 1
+            newFileName = fileName .. string.format(" (%d)", numOfSameNameFiles)
+        end
+        fileName = newFileName
+    end
+
+    fileName = fileName .. ".txt"
+
+    local success, message = love.filesystem.write(
+        customNonogramDir .. "/" .. fileName,
+        string.format(
+            "%d,%d\n",
+            self.nonogram.dimensions[1],
+            self.nonogram.dimensions[2]
+        ) ..
+        -- workaround not needed after bugfix
+        -- string.sub(table.concat(self.nonogram.matrixState), 1, self.nonogram.dimensions[1] * self.nonogram.dimensions[2])
+        table.concat(self.nonogram.matrixState)
+    )
+    
+    if not success then
+        print(message)
+    end
+
+end
 
 return CreateNonogramScene

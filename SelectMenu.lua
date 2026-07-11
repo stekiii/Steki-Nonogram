@@ -1,9 +1,8 @@
 local Scene = require 'Scene'
 local NonogramScene = require 'NonogramScene'
-local nonogramPath = NONOGRAM_FOLDER_PATH
 
 SelectMenu = Scene:new{
-    currentFolder = nonogramPath,
+    currentFolder = NONOGRAM_FOLDER_PATH,
     initialPosition = { 134, 30 },
     spacing = { 135, 75 },
     buttonsInRow = 3,
@@ -66,10 +65,11 @@ function SelectMenu:makeButton(path, type, text)
             self.initialPosition[1] + self.spacing[1] * math.fmod(self.currentButtonIndex, self.buttonsInRow),
             self.initialPosition[2] + self.spacing[2] * math.floor(self.currentButtonIndex / self.buttonsInRow)
         },
-        texture1 = TEXTURE_PATHS.selectButton,
+        texture1 = type == "directory" and TEXTURE_PATHS.selectButtonFolder or TEXTURE_PATHS.selectButtonFile,
         text = text,
         font = self.font,
         fontColor1 = { 0, 0, 0 },
+        fontColor2 = type == "directory" and { 204/255, 151/255, 57/255 } or { 230/255, 198/255, 140/255 },
         pressFunction = type == "directory" and
             function ()
                 self.currentFolder = path
@@ -96,7 +96,7 @@ function SelectMenu:loadGraphicElements()
 
     self.currentButtonIndex = 0
     self.buttons = {}
-    self.font = love.graphics.newFont(NONOGRAM_SELECT_MENU_FONT, NONOGRAM_SELECT_MENU_FOTN_SIZE, "mono")
+    self.font = love.graphics.newFont(NONOGRAM_SELECT_MENU_FONT, NONOGRAM_SELECT_MENU_FONT_SIZE, "mono")
     self.font:setFilter("nearest", "nearest")
 
     for _, name in ipairs(directoryItems) do
@@ -110,8 +110,8 @@ function SelectMenu:loadGraphicElements()
         end
     end
 
-    if self.currentFolder ~= nonogramPath then
-        local i = string.find(self.currentFolder, "/%w*$") - 1
+    if self.currentFolder ~= NONOGRAM_FOLDER_PATH then
+        local i = string.find(self.currentFolder, "/[%w \\-.]*$") - 1
         local str = i and string.sub(self.currentFolder, 1, i) or ""
         -- print(self.currentFolder)
         -- print(i)
@@ -123,7 +123,7 @@ function SelectMenu:loadGraphicElements()
         self:makeButton(folder[1], "directory", folder[2])
     end
     for _, file in ipairs(fileList) do
-        self:makeButton(file[1], "file", file[2])
+        self:makeButton(file[1], "file", string.sub(file[2], 1, string.len(file[2]) - 4))
     end
 
     self.buttons.backButton = Button:new{
