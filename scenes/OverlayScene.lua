@@ -1,4 +1,4 @@
-local Scene = require 'Scene'
+local Scene = require 'scenes.Scene'
 
 OverlayScene = Scene:new{
     overlaidScene = {}

@@ -1,4 +1,4 @@
-local GraphicElement = require 'GraphicElement'
+local GraphicElement = require 'gui.GraphicElement'
 
 local hintConsts = NONOGRAM_HINT_FIELD_CONSTANTS
 

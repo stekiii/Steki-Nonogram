@@ -1,4 +1,4 @@
-local OverlayScene = require 'OverlayScene'
+local OverlayScene = require 'scenes.OverlayScene'
 
 OptionsMenu = OverlayScene:new{
     optionsMenuTexture = {},

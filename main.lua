@@ -1,5 +1,5 @@
 local Game = require 'Game'
-local TitleScene = require 'TitleScene'
+local TitleScene = require 'scenes.TitleScene'
 
 local displayResolution = { 960, 540 } -- { 1920, 1080 }
 local fullscreen = FULLSCREEN

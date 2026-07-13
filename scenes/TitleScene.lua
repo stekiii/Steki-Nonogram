@@ -1,8 +1,8 @@
-local Scene = require 'Scene'
-local Button = require 'Button'
-local CreateNonogramScene = require 'CreateNonogramScene'
-local OptionsMenu = require 'OptionsMenu'
-local SelectMenu = require 'SelectMenu'
+local Scene = require 'scenes.Scene'
+local Button = require 'gui.Button'
+local CreateNonogramScene = require 'scenes.CreateNonogramScene'
+local OptionsMenu = require 'scenes.OptionsMenu'
+local SelectMenu = require 'scenes.SelectMenu'
 
 local texturePaths = TEXTURE_PATHS
 local backgroundImage, quad

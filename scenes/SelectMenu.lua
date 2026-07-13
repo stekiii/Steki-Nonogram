@@ -1,5 +1,5 @@
-local Scene = require 'Scene'
-local NonogramScene = require 'NonogramScene'
+local Scene = require 'scenes.Scene'
+local NonogramScene = require 'scenes.NonogramScene'
 
 SelectMenu = Scene:new{
     currentFolder = NONOGRAM_FOLDER_PATH,

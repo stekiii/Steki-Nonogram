@@ -1,5 +1,5 @@
-local NonogramScene = require 'NonogramScene'
-local Image = require 'Image'
+local NonogramScene = require 'scenes.NonogramScene'
+local Image = require 'gui.Image'
 local defaultDimensions = 3
 
 local texturePaths = TEXTURE_PATHS

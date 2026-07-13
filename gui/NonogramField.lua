@@ -1,4 +1,4 @@
-local GraphicElement = require 'GraphicElement'
+local GraphicElement = require 'gui.GraphicElement'
 
 NonogramFieldState = {
     Empty = 0,

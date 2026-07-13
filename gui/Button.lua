@@ -1,4 +1,4 @@
-local GraphicElement = require 'GraphicElement'
+local GraphicElement = require 'gui.GraphicElement'
 
 Button = GraphicElement:new{
     text = nil,

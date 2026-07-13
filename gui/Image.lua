@@ -1,4 +1,4 @@
-local GraphicElement = require 'GraphicElement'
+local GraphicElement = require 'gui.GraphicElement'
 
 Image = GraphicElement:new{
     position = { 0, 0 },
