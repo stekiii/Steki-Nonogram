@@ -105,10 +105,6 @@ function OptionsMenu:loadGraphicElements()
     
     table.insert(self.buttons, Button:new{
         position = { 549, 40 },
-            -- {
-            --     (SCREEN_WIDTH + self.optionsMenuTexture:getPixelWidth() - 3*self:getTexture(TEXTURE_PATHS.cross):getPixelWidth()) / 2,
-            --     (SCREEN_HEIGHT - self.optionsMenuTexture:getPixelHeight() + self:getTexture(TEXTURE_PATHS.cross):getPixelWidth()) / 2
-            -- },
         texture1 = TEXTURE_PATHS.optionsMenuExit0,
         texture2 = TEXTURE_PATHS.optionsMenuExit1,
         pressFunction = function ()
@@ -121,9 +117,6 @@ function OptionsMenu:loadGraphicElements()
         texture1 = TEXTURE_PATHS.optionsMenuButton0,
         texture2 = TEXTURE_PATHS.optionsMenuButton1,
         pressFunction = function ()
-            -- if Game.fullscreen then
-            --     Game:toggleFullscreen()
-            -- end
             local newScale = Game.gameScale + 0.5
 
             if SCREEN_WIDTH * newScale > MAX_WINDOW_WIDTH then

@@ -74,7 +74,6 @@ function CreateNonogramScene:initialize()
             text = "Save",
             font = self.font,
             fontColor1 = { 0, 0, 0 },
-            -- fontColor2 = { 85/255, 190/255, 234/255 },
             texture1 = texturePaths.saveButton0,
             texture2 = texturePaths.saveButton1,
             pressFunction = function ()
@@ -106,11 +105,6 @@ function CreateNonogramScene:changeSize(rows, columns)
             end
             table.remove(self.nonogram.columnHints, columns + j)
         end
-
-        -- for _, val in ipairs(self.nonogram.matrixState) do
-        --     print(val)
-        -- end
-        -- print()
     end
 
     if rows > oldRows then
@@ -187,6 +181,12 @@ function CreateNonogramScene:saveNonogram()
 
     fileName = fileName .. ".txt"
 
+    for i = 1, #self.nonogram.matrixState do
+        if self.nonogram.matrixState[i] == 2 then
+            self.nonogram.matrixState[i] = 0
+        end
+    end
+
     local success, message = love.filesystem.write(
         customNonogramDir .. "/" .. fileName,
         string.format(
@@ -194,8 +194,6 @@ function CreateNonogramScene:saveNonogram()
             self.nonogram.dimensions[1],
             self.nonogram.dimensions[2]
         ) ..
-        -- workaround not needed after bugfix
-        -- string.sub(table.concat(self.nonogram.matrixState), 1, self.nonogram.dimensions[1] * self.nonogram.dimensions[2])
         table.concat(self.nonogram.matrixState)
     )
     

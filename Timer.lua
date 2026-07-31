@@ -18,7 +18,7 @@ end
 
 function Timer:update(dt)
     if not self.started then
-        return
+        return false, 0
     end
 
     self.currTime = self.currTime + dt
@@ -31,14 +31,32 @@ function Timer:update(dt)
         end
 
         self.currTime = self.currTime - self.goalTime
-        return true
+        return true, dt - self.currTime
     end
 
-    return false
+    return false, dt
+end
+
+function Timer:updateNoOverflow(dt)
+    local ticked, timeUsed = self:update(dt)
+    if ticked then
+        self.currTime = 0
+    end
+    return ticked, timeUsed
 end
 
 function Timer:start()
     self.started = true
+end
+
+function Timer:changeGoalTime(goalTime)
+    self.currTime = 0
+    self.goalTime = goalTime
+end
+
+function Timer:changeRepetitions(repetitions)
+    self.repetitions = repetitions
+    self:reset()
 end
 
 function Timer:reset()
@@ -51,6 +69,10 @@ function Timer:set(goalTime, repetitions)
     self.repetitions = repetitions or self.repetitions
     self.goalTime = goalTime
     self:reset()
+end
+
+function Timer:isRunning()
+    return self.started
 end
 
 return Timer

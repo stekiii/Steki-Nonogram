@@ -68,6 +68,11 @@ function Animation:start()
     end
 end
 
+function Animation:reset()
+    self.graphicElement.position = { unpack(self.initialPosition) }
+    self.running = false
+end
+
 function Animation:isRunning()
     return self.running
 end

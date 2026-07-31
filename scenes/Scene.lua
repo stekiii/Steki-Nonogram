@@ -94,6 +94,10 @@ function Scene:handleKeyRelease(key, scancode)
     
 end
 
+function Scene:quit()
+    
+end
+
 function Scene:draw()
     
 end

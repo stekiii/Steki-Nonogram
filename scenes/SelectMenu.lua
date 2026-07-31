@@ -1,17 +1,29 @@
 local Scene = require 'scenes.Scene'
 local NonogramScene = require 'scenes.NonogramScene'
+local Image = require 'gui.Image'
+local math = math
+
+local texturePaths = TEXTURE_PATHS
+
+local selectMenuImage
+local backgroundImage, quad, imageWidth, imageHeight
+local scrollSpeedX = -10
+local scrollSpeedY = -20
+local width, height = love.graphics.getDimensions()
+local xOffset, yOffset = 0, 0
+
+local scrollOffset, maxScrollOffset, minScrollOffset = { 0, 0 }, 0, 0
+local scrollSpeed, maxScrollSpeed, minScrollSpeed, scrollSpeedIncrease, scrollSpeedDeceleration = 0, 1400, 0.1, 500, 15
 
 SelectMenu = Scene:new{
     currentFolder = NONOGRAM_FOLDER_PATH,
-    initialPosition = { 134, 30 },
-    spacing = { 135, 75 },
+    initialPosition = { 68, 30 },
+    spacing = { 175, 75 },
     buttonsInRow = 3,
     currentButtonIndex = 0,
     buttons = {},
     font = {}
 }
-
-local newImage = love.graphics.newImage
 
 function SelectMenu:new(o)
     o = o or {}
@@ -27,7 +39,7 @@ end
 function SelectMenu:handleMousePress(x, y, button)
     if button == 1 then
         for _, b in pairs(self.buttons) do
-            if b:isClicked({ x, y }) then
+            if b:isClicked({ x, y }, 1, b ~= self.buttons.backButton and scrollOffset or nil) then
                 b:handleMousePress(x, y, button)
                 return
             end
@@ -38,7 +50,7 @@ end
 function SelectMenu:handleMouseRelease(x, y, button)
     if button == 1 then
         for _, b in pairs(self.buttons) do
-            if b:isClicked({ x, y }) then
+            if b:isClicked({ x, y }, 1, b ~= self.buttons.backButton and scrollOffset or nil) then
                 b:handleMouseRelease(x, y, button)
             end
             b.marked = false
@@ -47,16 +59,41 @@ function SelectMenu:handleMouseRelease(x, y, button)
 end
 
 function SelectMenu:handleMouseMove(x, y)
-    -- self.mousePosition[1], self.mousePosition[2] = x, y
     for _, button in pairs(self.buttons) do
-        button.hovered = button:isClicked({ x, y })
+        button.hovered = button:isClicked({ x, y }, 1, button ~= self.buttons.backButton and scrollOffset or nil)
     end
 end
 
-function SelectMenu:draw()
-    for _, button in pairs(self.buttons) do
-        button:draw()
+function SelectMenu:handleMouseWheel(x, y)
+    if scrollSpeed <= 0 and y > 0 or scrollSpeed >= 0 and y < 0 then
+        scrollSpeed = 0
     end
+
+    scrollSpeed = scrollSpeed + y * scrollSpeedIncrease
+
+    scrollSpeed = y < 0 and
+        math.max(-maxScrollSpeed, scrollSpeed) or
+        math.min(maxScrollSpeed, scrollSpeed)
+end
+
+function SelectMenu:draw()
+    love.graphics.draw(backgroundImage, quad)
+
+    selectMenuImage:draw()
+
+    love.graphics.push()
+
+    love.graphics.translate(0, scrollOffset[2])
+
+    for _, button in pairs(self.buttons) do
+        if button ~= self.buttons.backButton then
+            button:draw()
+        end
+    end
+
+    love.graphics.pop()
+
+    self.buttons.backButton:draw()
 end
 
 function SelectMenu:makeButton(path, type, text)
@@ -65,7 +102,7 @@ function SelectMenu:makeButton(path, type, text)
             self.initialPosition[1] + self.spacing[1] * math.fmod(self.currentButtonIndex, self.buttonsInRow),
             self.initialPosition[2] + self.spacing[2] * math.floor(self.currentButtonIndex / self.buttonsInRow)
         },
-        texture1 = type == "directory" and TEXTURE_PATHS.selectButtonFolder or TEXTURE_PATHS.selectButtonFile,
+        texture1 = type == "directory" and texturePaths.selectButtonFolderBig or texturePaths.selectButtonFileBig,
         text = text,
         font = self.font,
         fontColor1 = { 0, 0, 0 },
@@ -113,9 +150,6 @@ function SelectMenu:loadGraphicElements()
     if self.currentFolder ~= NONOGRAM_FOLDER_PATH then
         local i = string.find(self.currentFolder, "/[%w \\-.]*$") - 1
         local str = i and string.sub(self.currentFolder, 1, i) or ""
-        -- print(self.currentFolder)
-        -- print(i)
-        -- print(str)
         self:makeButton(str, "directory", "..")
     end
 
@@ -126,13 +160,53 @@ function SelectMenu:loadGraphicElements()
         self:makeButton(file[1], "file", string.sub(file[2], 1, string.len(file[2]) - 4))
     end
 
+    scrollOffset[2] = 0
+    maxScrollOffset = 360 - (self.initialPosition[2] * 2 + self.spacing[2] * math.floor((self.currentButtonIndex - 1) / self.buttonsInRow) + Scene:getTexture(texturePaths.selectButtonFileBig):getPixelHeight())
+    maxScrollOffset = math.min(maxScrollOffset, 0)
+
     self.buttons.backButton = Button:new{
         position = { 587, 10 },
-        texture1 = TEXTURE_PATHS.backButton,
+        texture1 = texturePaths.backButton,
         pressFunction = function ()
             Game:loadScene(TitleScene:new{})
         end
     }
+
+    selectMenuImage = Image:new({
+        position = { 0, 0 },
+        texture = texturePaths.selectMenu
+    })
+
+    backgroundImage = love.graphics.newImage(texturePaths.selectMenuBackgroundSmall)
+    backgroundImage:setFilter("nearest", "nearest")
+    backgroundImage:setWrap("repeat", "repeat")
+    imageWidth, imageHeight = backgroundImage:getDimensions()
+
+    quad = love.graphics.newQuad(0, 0, width, height, backgroundImage:getDimensions())
 end
+
+function SelectMenu:update(dt)
+    if scrollSpeed ~= 0 then
+        local nextScrollSpeed = scrollSpeed * (1 - scrollSpeedDeceleration * dt)
+
+        scrollOffset[2] = scrollOffset[2] + (scrollSpeed + nextScrollSpeed) * dt / 2
+        scrollOffset[2] = math.max(maxScrollOffset, scrollOffset[2])
+        scrollOffset[2] = math.min(minScrollOffset, scrollOffset[2])
+
+        scrollSpeed = math.abs(nextScrollSpeed) > minScrollSpeed and nextScrollSpeed or 0
+    end
+
+    xOffset, yOffset = xOffset + (scrollSpeedX * dt), yOffset + (scrollSpeedY * dt)
+
+    if xOffset >= imageWidth then
+        xOffset = xOffset - imageWidth
+    end
+    if yOffset >= imageHeight then
+        yOffset = yOffset - imageHeight
+    end
+
+    quad:setViewport(xOffset, yOffset, width, height)
+end
+
 
 return SelectMenu

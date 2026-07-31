@@ -53,7 +53,7 @@ function NonogramField:changeState(state)
 end
 
 function NonogramField:handleMousePress(x, y, button)
-    if Game.currentScene.solved then
+    if Game.currentScene:ignoreInput() then
         return
     end
 
@@ -76,30 +76,17 @@ function NonogramField:handleMousePress(x, y, button)
 end
 
 function NonogramField:handleMouseMove(x, y)
-    if Game.currentScene.solved then
+    if Game.currentScene:ignoreInput() then
         return
     end
 
     local scene = Game.currentScene
     local actions = scene.actions
 
-    -- if self.matrixPosition[1] == actions.positionOfPressedField[1] or self.matrixPosition[2] == actions.positionOfPressedField[2] then
-    --     self:changeState(scene.nonogram:getState(actions.positionOfPressedField))
-    -- end
-    -- local newState = scene.nonogram:getState(actions.positionOfPressedField)
-    -- local newState =
-    --     actions.marking and NonogramFieldState.Marked or
-    --     (actions.crossing and NonogramFieldState.Crossed or NonogramFieldState.Empty)
-    
     if actions.state ~= self.state then
-        -- self:changeState(scene.nonogram:getState(actions.positionOfPressedField))
         self:changeState(actions.state)
     end
 end
-
--- function NonogramField:onHighlight()
-    
--- end
 
 function NonogramField:draw()
     local i, j = self.matrixPosition[1], self.matrixPosition[2]
@@ -116,9 +103,6 @@ function NonogramField:draw()
     else
         texture = self.highlight and currentScene:getTexture(texturePathTable.hoverfield4) or currentScene:getTexture(texturePathTable.field4)
     end
-
-    -- local x, y = (texture:getPixelWidth() - NONOGRAM_FIELD_OFFSET) * (j - 1),
-    --     (texture:getPixelHeight() - NONOGRAM_FIELD_OFFSET) * (i - 1)
 
     texture:setFilter("nearest")
     love.graphics.draw(texture, unpack(self.position))

@@ -12,7 +12,10 @@ Button = GraphicElement:new{
     end,
     hovered = false,
     marked = false,
-    border = 0
+    border = 0,
+    isDisabled = function ()
+        return false
+    end
 }
 
 function Button:new(o)
@@ -35,37 +38,39 @@ end
 
 function Button:handleMousePress(x, y, button)
     if button == 1 then
-        self.marked = true
+        if not self.isDisabled() then
+            self.marked = true
+        end
     end
 end
 
 function Button:handleMouseRelease(x, y, button)
     if button == 1 and self.marked then
         self.hovered = false
-        self.pressFunction()
+        if not self.isDisabled() then
+            self.pressFunction()
+        end
     end
 end
 
--- function Button:handleMouseMove(x, y)
---     self.hovered = true
--- end
-
 function Button:draw()
-    local currentScene = Game.currentScene
-    local texture = self.hovered and
-        currentScene:getTexture(self.texture2) or
-        currentScene:getTexture(self.texture1)
-    texture:setFilter("nearest")
-    love.graphics.draw(texture, unpack(self.position))
-    
-    if self.text then
-        local color = self.hovered and self.fontColor2 or self.fontColor1
-        love.graphics.print(
-                { color, self.text },
-                self.font,
-                self.position[1] + (texture:getPixelWidth() - self.font:getWidth(self.text) - NONOGRAM_BUTTON_BORDER) / 2,
-                self.position[2] + (texture:getPixelHeight() - self.font:getHeight() - NONOGRAM_BUTTON_BORDER) / 2
-            )
+    if not self.isDisabled() then
+        local currentScene = Game.currentScene
+        local texture = self.hovered and
+            currentScene:getTexture(self.texture2) or
+            currentScene:getTexture(self.texture1)
+        texture:setFilter("nearest")
+        love.graphics.draw(texture, unpack(self.position))
+        
+        if self.text then
+            local color = self.hovered and self.fontColor2 or self.fontColor1
+            love.graphics.print(
+                    { color, self.text },
+                    self.font,
+                    self.position[1] + (texture:getPixelWidth() - self.font:getWidth(self.text) - NONOGRAM_BUTTON_BORDER) / 2,
+                    self.position[2] + (texture:getPixelHeight() - self.font:getHeight() - NONOGRAM_BUTTON_BORDER) / 2
+                )
+        end
     end
 end
 

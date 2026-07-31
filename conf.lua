@@ -32,12 +32,19 @@ TEXTURE_PATHS = {
     optionsMenuButton1 = textureFolderPath .. "optionsMenuButton1.png",
     optionsMenuExit0 = textureFolderPath .. "optionsMenuExit0.png",
     optionsMenuExit1 = textureFolderPath .. "optionsMenuExit1.png",
-    selectButtonFolder = textureFolderPath .. "selectButtonFolder.png",
-    selectButtonFile = textureFolderPath .. "selectButtonFile.png",
+    selectButtonFolderSmall = textureFolderPath .. "selectButtonFolderSmall.png",
+    selectButtonFileSmall = textureFolderPath .. "selectButtonFileSmall.png",
+    selectButtonFolderBig = textureFolderPath .. "selectButtonFolderBig.png",
+    selectButtonFileBig = textureFolderPath .. "selectButtonFileBig.png",
+    selectMenu = textureFolderPath .. "selectMenu.png",
+    selectMenuBackground = textureFolderPath .. "selectMenuBackground.png",
+    selectMenuBackgroundSmall = textureFolderPath .. "selectMenuBackgroundSmall.png",
     plusButton = textureFolderPath .. "plusButton.png",
     minusButton = textureFolderPath .. "minusButton.png",
     plusButtonSmall = textureFolderPath .. "plusButtonSmall.png",
     minusButtonSmall = textureFolderPath .. "minusButtonSmall.png",
+    plusButtonMini = textureFolderPath .. "plusButtonMini.png",
+    minusButtonMini = textureFolderPath .. "minusButtonMini.png",
     backButton = textureFolderPath .. "backButton.png",
     saveButton0 = textureFolderPath .. "saveButton0.png",
     saveButton1 = textureFolderPath .. "saveButton1.png",
@@ -46,7 +53,16 @@ TEXTURE_PATHS = {
     titleBackground = textureFolderPath .. "titleBackground.png",
     titleBackgroundSmall = textureFolderPath .. "titleBackgroundSmall.png",
     nonogramSceneBackground = textureFolderPath .. "nonogramSceneBackground.png",
-    nonogramSceneBackgroundSmall = textureFolderPath .. "nonogramSceneBackgroundSmall.png"
+    nonogramSceneBackgroundSmall = textureFolderPath .. "nonogramSceneBackgroundSmall.png",
+    solverMenu = textureFolderPath .. "solverMenu.png",
+    previousButton = textureFolderPath .. "previousButton.png",
+    nextButton = textureFolderPath .. "nextButton.png",
+    previousButtonSmall = textureFolderPath .. "previousButtonSmall.png",
+    nextButtonSmall = textureFolderPath .. "nextButtonSmall.png",
+    startButtonSmall = textureFolderPath .. "startButtonSmall.png",
+    pauseButton = textureFolderPath .. "pauseButton.png",
+    resetButton = textureFolderPath .. "resetButton.png",
+    resumeButton = textureFolderPath .. "resumeButton.png"
 }
 
 FONTS_PATHS = {
@@ -113,7 +129,7 @@ NONOGRAM_SELECT_MENU_FONT = FONTS_PATHS.ks
 NONOGRAM_SELECT_MENU_FONT_SIZE = 16
 
 function love.conf(t)
-    -- t.identity = "saves"
     -- t.window.vsync = 1
+    t.version = "11.5"
     t.window.title = "Nonogram Steki"
 end

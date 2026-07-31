@@ -7,7 +7,6 @@ local SelectMenu = require 'scenes.SelectMenu'
 local texturePaths = TEXTURE_PATHS
 local backgroundImage, quad
 
-local time = 0
 local xOffset, yOffset = 0, 0
 local scrollSpeedX = 20
 local scrollSpeedY = scrollSpeedX * 9 / 16
@@ -63,7 +62,6 @@ function TitleScene:loadGraphicElements()
             texture1 = texturePaths.titleButton10,
             texture2 = texturePaths.titleButton11,
             pressFunction = function ()
-                -- Game:loadScene(NonogramScene:new{ filePath = NONOGRAM_FOLDER_PATH .. "test2.txt"})
                 Game:loadScene(SelectMenu:new{})
             end,
             border = NONOGRAM_BUTTON_BORDER
@@ -81,7 +79,6 @@ function TitleScene:loadGraphicElements()
             texture1 = texturePaths.titleButton20,
             texture2 = texturePaths.titleButton21,
             pressFunction = function ()
-                -- Game:loadScene(NonogramScene:new{ filePath = NONOGRAM_FOLDER_PATH .. "test2.txt"})
                 Game:loadScene(CreateNonogramScene:new{})
             end,
             border = NONOGRAM_BUTTON_BORDER
@@ -128,8 +125,6 @@ function TitleScene:loadGraphicElements()
     imageWidth, imageHeight = backgroundImage:getDimensions()
 
     quad = love.graphics.newQuad(0, 0, width, height, backgroundImage:getDimensions())
-
-    time = 0
 end
 
 function TitleScene:update(dt)
@@ -168,7 +163,6 @@ function TitleScene:handleMouseRelease(x, y, button)
 end
 
 function TitleScene:handleMouseMove(x, y)
-    -- self.mousePosition[1], self.mousePosition[2] = x, y
     for _, button in ipairs(self.buttons) do
         button.hovered = button:isClicked({ x, y })
     end

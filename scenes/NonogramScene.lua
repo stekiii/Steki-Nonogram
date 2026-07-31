@@ -6,8 +6,10 @@ local NonogramFillField = require 'gui.NonogramFillField'
 local NonogramHintValue = require 'gui.NonogramHintValue'
 local Button = require 'gui.Button'
 local Image = require 'gui.Image'
+local Text = require 'gui.Text'
 local Animation = require 'gui.Animation'
 local Timer = require 'Timer'
+local Solver = require 'solvers.Solver'
 
 local scrollSpeedIncrease = 10
 local scrollSpeedDeceleration = 11
@@ -21,7 +23,6 @@ local finalSolvedFieldPosition = {}
 local texturePaths = TEXTURE_PATHS
 local backgroundImage, quad
 
-local time = 0
 local xOffset, yOffset = 0, 0
 local scrollSpeedX = -25
 local scrollSpeedY = - (scrollSpeedX * 9 / 16) / 2
@@ -60,8 +61,6 @@ function NonogramScene:new(o)
         positionOfPressedField = { 0, 0 },
         marking = false,
         crossing = false,
-        unmarking = false, -- not needed?
-        uncrossing = false, -- not needed?
         emptying = false,
         state = nil
     }
@@ -70,6 +69,7 @@ function NonogramScene:new(o)
     o.nonogramHintFields = o.nonogramHintFields or {}
     o.nonogramFillFields = o.nonogramFillFields or {}
     o.hintValues = o.hintValues or {}
+    o.buttons = o.buttons or {}
 
     setmetatable(o, self)
     self.__index = self
@@ -77,18 +77,12 @@ function NonogramScene:new(o)
     return o
 end
 
--- function NonogramScene:transformedMouseInput(x, y)
---     return x + self.translationPosition[1], y + self.translationPosition[2]
--- end
-
 function NonogramScene:loadGraphicElements()
----[[
     self.nonogramFields = {}
     self.nonogramHintFields = {}
     self.nonogramFillFields = {}
     self.hintValues = {}
---]]
-    
+
     local rows, columns = unpack(self.nonogram.dimensions)
     local mostHintsInRow, mostHintsInColumn = self.nonogram:mostHintsInLine("row"), self.nonogram:mostHintsInLine("column")
 
@@ -114,18 +108,6 @@ function NonogramScene:loadGraphicElements()
 
     self.maxScale = SCREEN_HEIGHT / exFieldTexture:getPixelHeight()
     self.minScale = self.scale / 2
-
-    --[[
-    local oldScale = self.scale
-    self.scale = xScaling < yScaling and xScaling or yScaling
-
-    local tx, ty = unpack(self.translationPosition)
-    local x, y = SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2
-    local scalingFactor = self.scale / oldScale
-    self.translationPosition[1], self.translationPosition[2] =
-        tx + (x - tx) * (1 - scalingFactor),
-        ty + (y - ty) * (1 - scalingFactor)
-    --]]
 
     local exTexture = self:getTexture(TEXTURE_PATHS.hintFieldRow)
     local textureWidth, textureHeight = exTexture:getPixelWidth(), exTexture:getPixelHeight()
@@ -240,7 +222,6 @@ function NonogramScene:loadGraphicElements()
             table.insert(
                 self.nonogramFields,
                 NonogramField:new{
-                    -- state = NonogramFieldState.Empty
                     state = self.nonogram.matrixState[ (i - 1) * columns + j ],
                     matrixPosition = { i, j },
                     dimensions = { width, height },
@@ -256,12 +237,14 @@ function NonogramScene:loadGraphicElements()
         position = { 587, 10 },
         texture1 = TEXTURE_PATHS.backButton,
         pressFunction = function ()
+            self.solver:quit()
+
             if self.filePath == "" then
                 Game:loadScene(TitleScene:new{})
                 return
             end
 
-            local i = string.find(self.filePath, "/[%w.%- ]*$") - 1
+            local i = string.find(self.filePath, "/[%w_.%-%(%) ]*$") - 1
             local str = i and string.sub(self.filePath, 1, i) or ""
             Game:loadScene(SelectMenu:new{ currentFolder = str })
         end
@@ -291,14 +274,13 @@ function NonogramScene:loadGraphicElements()
         }
     }
 
-    local numOfTimerRepetitions = self.nonogram.dimensions[1] + self.nonogram.dimensions[2] - 1 - 1 -- najduzi put je r + c - 1, a reseno polje se ignorise => -1
+    local numOfTimerRepetitions = self.nonogram.dimensions[1] + self.nonogram.dimensions[2] - 1
 
     self.clearNonogramTimer = Timer:new{
         goalTime = timerBasePeriod,
         repetitions = numOfTimerRepetitions
     }
 
-    -- love.graphics.setBackgroundColor(1,0.8,0.8)
     backgroundImage = love.graphics.newImage(texturePaths.nonogramSceneBackgroundSmall)
     backgroundImage:setFilter("nearest", "nearest")
     backgroundImage:setWrap("repeat", "repeat")
@@ -306,7 +288,207 @@ function NonogramScene:loadGraphicElements()
 
     quad = love.graphics.newQuad(0, 0, width, height, backgroundImage:getDimensions())
 
-    time = 0
+    self.solver = Solver:new()
+
+    self.solverMenuFont = love.graphics.newFont(NONOGRAM_SELECT_MENU_FONT, 12, "mono")
+    self.solverMenuFont:setFilter("nearest", "nearest")
+
+    self.solverMenu = Image:new({
+        texture = texturePaths.solverMenu,
+        position = { 20, 20 }
+    })
+
+    self.solverName = Text:new({
+        text = self.solver:getCurrentSolver().name,
+        position = { self.solverMenu.position[1], 17 },
+        dimensions = { self:getTexture(self.solverMenu.texture):getWidth(), 36 },
+        font = self.solverMenuFont
+    })
+
+    self.previousSolverButton = Button:new({
+        position = { 36, 49 },
+        pressFunction = function ()
+            self.solver:previousSolver()
+            self.solverName.text = self.solver:getCurrentSolver().name
+        end,
+        texture1 = texturePaths.previousButtonSmall
+    })
+
+    self.nextSolverButton = Button:new({
+        position = { 112, 49 },
+        pressFunction = function ()
+            self.solver:nextSolver()
+            self.solverName.text = self.solver:getCurrentSolver().name
+        end,
+        texture1 = texturePaths.nextButtonSmall
+    })
+
+    self.startSolverButton = Button:new({
+        position = { 74, 48 },
+        pressFunction = function ()
+            if not self.solver:isRunning() and not self.simulation.simulating then
+                self:clearBoard()
+                self.solvedImageAnimation:reset()
+                self.iterationValueText.text = ""
+                self.solver:start(self.nonogram, tostring(self))
+                self.solved = false
+            end
+        end,
+        texture1 = texturePaths.startButtonSmall,
+        isDisabled = function ()
+            return self.solver:isRunning() or self.simulation.simulating
+        end
+    })
+
+    self.iterationText = Text:new({
+        text = "Current\niteration:",
+        position = { 25, 79 },
+        dimensions = { self:getTexture(self.solverMenu.texture):getWidth() / 2, 0 },
+        font = self.solverMenuFont
+    })
+
+    self.iterationValueText = Text:new({
+        text = "",
+        position = { 84, 79 },
+        dimensions = { self:getTexture(self.solverMenu.texture):getWidth() / 2, 12 },
+        font = self.solverMenuFont
+    })
+
+    self.currentSpeedText = Text:new({
+        text = "1x",
+        position = { 20, 113 },
+        dimensions = { self:getTexture(self.solverMenu.texture):getWidth(), 0 },
+        font = self.solverMenuFont
+    })
+
+    self.decreaseSpeedButton = Button:new({
+        position = { 40, 105 },
+        texture1 = texturePaths.minusButtonMini,
+        pressFunction = function ()
+            if self.simulation.timeModifier <= self.simulation.minTimeModifier then
+                return
+            end
+
+            self.simulation.timeModifier = self.simulation.timeModifier / 2
+            self.currentSpeedText.text = self.simulation.timeModifier .. "x"
+            self.simulation.timerBetweenSteps:changeGoalTime(self.simulation.timerBetweenSteps.goalTime * 2)
+            self.simulation.timerBetweenChanges:changeGoalTime(self.simulation.timerBetweenChanges.goalTime * 2)
+        end
+    })
+
+    self.increaseSpeedButton = Button:new({
+        position = { 107, 105 },
+        texture1 = texturePaths.plusButtonMini,
+        pressFunction = function ()
+            if self.simulation.timeModifier >= self.simulation.maxTimeModifier then
+                return
+            end
+
+            self.simulation.timeModifier = self.simulation.timeModifier * 2
+            self.currentSpeedText.text = self.simulation.timeModifier .. "x"
+            self.simulation.timerBetweenSteps:changeGoalTime(self.simulation.timerBetweenSteps.goalTime / 2)
+            self.simulation.timerBetweenChanges:changeGoalTime(self.simulation.timerBetweenChanges.goalTime / 2)
+        end
+    })
+
+    self.resetSimulationButton = Button:new({
+        position = { 55, 131 },
+        texture1 = texturePaths.resetButton,
+        pressFunction = function ()
+            self.simulation.initializeSimulation()
+            self:clearBoard()
+        end,
+        isDisabled = function ()
+            return not self.solver:isSolved()
+        end
+    })
+
+    self.pauseSimulationButton = Button:new({
+        position = { 90, 131 },
+        texture1 = texturePaths.pauseButton,
+        pressFunction = function ()
+            self.simulation.paused = true
+        end,
+        isDisabled = function ()
+            return not self.solver:isSolved() or self.simulation.paused
+        end
+    })
+
+    self.resumeSimulationButton = Button:new({
+        position = { 90, 131 },
+        texture1 = texturePaths.resumeButton,
+        pressFunction = function ()
+            self.simulation.paused = false
+        end,
+        isDisabled = function ()
+            return not self.solver:isSolved() or not self.simulation.paused
+        end
+    })
+
+    self.executionTimeText = Text:new({
+        text = "Execution time",
+        position = { 20, 164 },
+        dimensions = { self:getTexture(self.solverMenu.texture):getWidth(), 0 },
+        font = self.solverMenuFont
+    })
+
+    self.executionTimeValue = Text:new({
+        text = "",
+        position = { 20, 184 },
+        dimensions = { self:getTexture(self.solverMenu.texture):getWidth(), 0 },
+        font = self.solverMenuFont
+    })
+
+    if getmetatable(self) == NonogramScene then
+        table.insert(self.buttons, self.previousSolverButton)
+        table.insert(self.buttons, self.nextSolverButton)
+        table.insert(self.buttons, self.startSolverButton)
+        table.insert(self.buttons, self.decreaseSpeedButton)
+        table.insert(self.buttons, self.increaseSpeedButton)
+        table.insert(self.buttons, self.resetSimulationButton)
+        table.insert(self.buttons, self.pauseSimulationButton)
+        table.insert(self.buttons, self.resumeSimulationButton)
+    end
+
+    local defaultTime = 0.75
+
+    self.simulation = {
+        simulating = false,
+        paused = false,
+        currentStep = 0,
+        simulatingStep = false,
+        timerBetweenSteps = Timer:new{
+            goalTime = defaultTime,
+        },
+        currentChange = 0,
+        timerBetweenChanges = Timer:new{
+            goalTime = defaultTime / 3
+        },
+        timeModifier = 1,
+        minTimeModifier = 2^-2,
+        maxTimeModifier = 2^16,
+        initializeSimulation = function ()
+            self.solvedImageAnimation:reset()
+            self.solved = false
+
+            self.simulation.timerBetweenSteps.repetitions = #self.solver.steps
+
+            self.simulation.simulating = true
+            self.simulation.simulatingStep = false
+            self.simulation.currentStep = 0
+            self.simulation.timerBetweenSteps:reset()
+            self.simulation.timerBetweenChanges:reset()
+            self.clearNonogramTimer:reset()
+            self.simulation.timerBetweenSteps:start()
+            self.simulation.timerBetweenChanges:start()
+
+            self.iterationValueText.text = ""
+        end
+    }
+end
+
+function NonogramScene:quit()
+    self.solver:quit()
 end
 
 function NonogramScene:handleMousePress(x, y, button)
@@ -314,7 +496,6 @@ function NonogramScene:handleMousePress(x, y, button)
         for _, b in pairs(self.buttons) do
             if b:isClicked({ x, y }) then
                 b:handleMousePress(x, y, button)
-                return
             end
         end
     end
@@ -326,7 +507,6 @@ function NonogramScene:handleMousePress(x, y, button)
         return
     end
 
-    -- Scene.handleMousePress(self, x, y, button, self.scale, self.translationPosition)
     for _, field in ipairs(self.nonogramFields) do
         if field:isClicked({ x, y }, self.scale, self.translationPosition) then
             field:handleMousePress(x, y, button)
@@ -377,7 +557,6 @@ function NonogramScene:handleMouseMove(x, y)
     end
 
     if actions.emptying or actions.marking or actions.crossing then
-        -- Scene.handleMouseMove(self, x, y, self.scale, self.translationPosition)
         for _, field in ipairs(self.nonogramFields) do
             if field:isClicked({ x, y }, self.scale, self.translationPosition) then
                 field:handleMouseMove(x, y)
@@ -394,13 +573,17 @@ function NonogramScene:handleKeyRelease(key, scancode)
     end
 end
 
+function NonogramScene:enterSolvedState(position)
+    self.solved = true
+    self.solvedImageAnimation:start()
+    self.clearNonogramTimer:start()
+    finalSolvedFieldPosition = position
+end
+
 function NonogramScene:changeField(position, state)
     self.nonogram:changeField(position, state)
-    if not self.solved and self.nonogram:isSolved() then
-        self.solved = true
-        self.solvedImageAnimation:start()
-        self.clearNonogramTimer:start()
-        finalSolvedFieldPosition = position
+    if not self.simulation.simulating and not self.solved and self.nonogram:isSolved() then
+        self:enterSolvedState(position)
     end
 
     local acitons = self.actions
@@ -409,8 +592,6 @@ function NonogramScene:changeField(position, state)
         return
     end
 
-    -- acitons.positionOfPressedField[1], acitons.positionOfPressedField[2] =
-    --     position[1], position[2]
     acitons.state = state
 
     if state == NonogramFieldState.Empty then
@@ -424,23 +605,6 @@ function NonogramScene:changeField(position, state)
 end
 
 function NonogramScene:handleMouseWheel(x, y)
-    --[[
-    -- local sgn = y / math.abs(y)
-    -- local scrollSpeed = self.scrollSpeed
-
-    -- if scrollSpeed <= 0 and sgn > 0 or scrollSpeed >= 0 and sgn < 0 then
-    --     scrollSpeed = 0
-    -- end
-
-    -- scrollSpeed = scrollSpeed + sgn * scrollSpeedIncrease
-    
-    -- self.scrollSpeed = sgn < 0 and 
-    --     math.max(-maxScrollSpeed, scrollSpeed) or
-    --     math.min(maxScrollSpeed, scrollSpeed)
-
-    -- self.mousePositionAtScroll[1], self.mousePositionAtScroll[2] =
-    --     self.latestMousePosition[1], self.latestMousePosition[2]
-    --]]
 
     local scrollSpeed = self.scrollSpeed
 
@@ -449,7 +613,7 @@ function NonogramScene:handleMouseWheel(x, y)
     end
 
     scrollSpeed = scrollSpeed + y * scrollSpeedIncrease
-    
+
     self.scrollSpeed = y < 0 and
         math.max(-maxScrollSpeed, scrollSpeed) or
         math.min(maxScrollSpeed, scrollSpeed)
@@ -458,7 +622,6 @@ function NonogramScene:handleMouseWheel(x, y)
         Game:getMousePosition()
 end
 
----[[
 function NonogramScene:update(dt)
     xOffset, yOffset = xOffset + (scrollSpeedX * dt), yOffset + (scrollSpeedY * dt)
 
@@ -474,7 +637,7 @@ function NonogramScene:update(dt)
     self.solvedImageAnimation:update(dt)
 
     if self.clearNonogramTimer:update(dt) then
-        local currIter = self.clearNonogramTimer.timesFinished
+        local currIter = self.clearNonogramTimer.timesFinished - 1
         local rows, cols
         local nonogramField
         for i = 0, currIter do
@@ -497,15 +660,93 @@ function NonogramScene:update(dt)
         end
     end
 
+    if not self.solved and self.solver:checkFinished() and not self.simulation.simulating then
+        print("NUM OF STEPS: ", #self.solver.steps, "\n")
+        if self.solver.solved == 1 then
+            self.executionTimeValue.text =  self.solver.executionTime < 1 and string.format("%.5f ms", self.solver.executionTime * 1000) or string.format("%.5f s", self.solver.executionTime)
+            self.simulation.initializeSimulation()
+        else
+            print("Failed to solve")
+            self.solver:reset()
+        end
+    end
+
+    local function simulationChanges(dt)
+        while true do
+            local ticked, timeUsed = self.simulation.timerBetweenChanges:updateNoOverflow(dt)
+
+            if ticked then
+                self.simulation.currentChange = self.simulation.currentChange + 1
+
+                local change = self.solver.steps[self.simulation.currentStep][self.simulation.currentChange] -- should never be nil since timer will stop before that
+                local nonogramField = self.nonogramFields[(change.row - 1) * self.nonogram.dimensions[2] + change.col]
+                nonogramField:changeState(change.action)
+
+                if not self.simulation.timerBetweenChanges:isRunning() then
+                    self.simulation.simulatingStep = false
+
+                    if not self.simulation.timerBetweenSteps:isRunning() then
+                        self.simulation.simulating = false
+
+                        if self.nonogram:isSolved() then
+                            self:enterSolvedState({ change.row, change.col })
+                        end
+                    end
+                end
+                
+                dt = dt - timeUsed
+            else
+                dt = dt - timeUsed
+                break
+            end
+        end
+
+        return dt
+    end
+
+    local function simulationSteps(dt)
+        while self.simulation.simulating and dt > 0 do
+            if not self.simulation.simulatingStep then
+                while true do
+
+                    local ticked, timeUsed = self.simulation.timerBetweenSteps:updateNoOverflow(dt)
+
+                    if ticked then
+                        self.simulation.currentChange = 0
+                        self.simulation.simulatingStep = true
+                        self.simulation.currentStep = self.simulation.currentStep + 1
+                        self.iterationValueText.text = tostring(self.simulation.currentStep)
+
+                        self.simulation.timerBetweenChanges:changeRepetitions(#self.solver.steps[self.simulation.currentStep])
+                        self.simulation.timerBetweenChanges:start()
+
+                        dt = dt - timeUsed
+
+                        dt = simulationChanges(dt)
+                    else
+                        dt = dt - timeUsed
+                        break
+                    end
+                end
+            else
+                dt = simulationChanges(dt)
+            end
+        end
+    end
+
+    if not self.simulation.paused then
+        simulationSteps(dt)
+    end
+
     if self.scrollSpeed ~= 0 then
         local scrollSpeed = self.scrollSpeed
         local oldScale = self.scale
 
         scrollSpeed = scrollSpeed * (1 - scrollSpeedDeceleration * dt)
-        
+
         self.scale = oldScale * (1 + NONOGRAM_SCALE_INCREMENT * dt * (scrollSpeed + self.scrollSpeed) / 2)
         self.scale = (self.scale < self.minScale) and self.minScale or (self.scale > self.maxScale and self.maxScale or self.scale)
-        
+
         self.scrollSpeed = math.abs(scrollSpeed) > minScrollSpeed and scrollSpeed or 0
 
         local scalingFactor = self.scale / oldScale
@@ -535,102 +776,19 @@ function NonogramScene:update(dt)
             end
         end
     end
-
-    -- if self.scrollSpeed ~= 0 then
-    --     local scrollSpeed = self.scrollSpeed
-    --     local oldScale = self.scale
-
-    --     scrollSpeed = scrollSpeed * (1 - scrollSpeedDeceleration * dt)
-    --     scrollSpeed = math.abs(scrollSpeed) > minScrollSpeed and scrollSpeed or 0
-
-    --     self.scale = oldScale + (self.scrollSpeed + scrollSpeed) * dt / 2
-    --     self.scale = (self.scale < self.minScale) and self.minScale or (self.scale > self.maxScale and self.maxScale or self.scale)
-        
-    --     self.scrollSpeed = scrollSpeed
-
-    --     local scalingFactor = self.scale / oldScale
-    --     if scalingFactor ~= 1 then
-    --         local tx, ty = unpack(self.translationPosition)
-    --         local x, y = unpack(self.mousePositionAtScroll)
-
-    --         self.translationPosition[1], self.translationPosition[2] =
-    --             tx + (x - tx) * (1 - scalingFactor),
-    --             ty + (y - ty) * (1 - scalingFactor)
-    --     end
-    -- end
 end
---]]
-
---[[
-function NonogramScene:update(dt)
-    if self.scrollSpeed ~= 0 then
-        local scrollSpeed = self.scrollSpeed
-        local oldScale = self.scale
-        
-        self.scale = oldScale + NONOGRAM_SCALE_INCREMENT * dt * scrollSpeed * oldScale
-        self.scale = (self.scale < self.minScale) and self.minScale or (self.scale > self.maxScale and self.maxScale or self.scale)
-
-        local scalingFactor = self.scale / oldScale
-        if scalingFactor ~= 1 then
-            local tx, ty = unpack(self.translationPosition)
-            local x, y = unpack(self.mousePositionAtScroll)
-
-            self.translationPosition[1], self.translationPosition[2] =
-                tx + (x - tx) * (1 - scalingFactor),
-                ty + (y - ty) * (1 - scalingFactor)
-
-            scrollSpeed = scrollSpeed * (1 - scrollSpeedDeceleration * dt)
-            self.scrollSpeed = math.abs(scrollSpeed) > minScrollSpeed and scrollSpeed or 0
-        else
-            self.scrollSpeed = 0
-        end
-    end
-
-    -- local sgn = scrollSpeed == 0 and 0 or scrollSpeed / math.abs(scrollSpeed)
-    -- local sgn = scrollSpeed / math.abs(scrollSpeed)
-
-    -- scrollSpeedDeceleration = 110
-    -- local newSpeed = self.scrollSpeed - sgn * scrollSpeedDeceleration * dt
-    -- self.scrollSpeed =
-    --     (newSpeed <= 0 and scrollSpeed < 0 or newSpeed >= 0 and scrollSpeed > 0) and
-    --         newSpeed or 0
-    
-end
---]]
 
 function NonogramScene:loadNonogramFromFile()
-    -- local lineIter = io.lines(self.filePath) -- Worked on Windows...
-    local lineIter = love.filesystem.lines(self.filePath) -- Works on Linux
-    
+    local lineIter = love.filesystem.lines(self.filePath)
+
     local dimensions, rowHints, columnHints, matrixState, solution = {}, {}, {}, {}, {}
 
     local line = lineIter()
-    
+
     local pattern = "(%d+)[,\n]?"
     local iterFunc = string.gmatch(line, pattern)
     dimensions[1], dimensions[2] = tonumber(iterFunc()), tonumber(iterFunc())
-    
-    -- for i = 1, dimensions[1], 1 do
-    --     local rowHint = {}
-    --     line = lineIter()
 
-    --     for number in string.gmatch(line, pattern) do
-    --         table.insert(rowHint, tonumber(number))
-    --     end
-
-    --     table.insert(rowHints, rowHint)
-    -- end
-
-    -- for i = 1, dimensions[2], 1 do
-    --     local columnHint = {}
-    --     line = lineIter()
-
-    --     for number in string.gmatch(line, pattern) do
-    --         table.insert(columnHint, tonumber(number))
-    --     end
-
-    --     table.insert(columnHints, columnHint)
-    -- end
 
     line = lineIter()
     if not line or #line ~= dimensions[1] * dimensions[2] then
@@ -654,7 +812,7 @@ function NonogramScene:loadNonogramFromFile()
             fieldValue = solution[(i - 1) * dimensions[2] + j]
             
             if fieldValue == NonogramFieldState.Marked then
-                rowHints[i][hintIndex] =  lineStarted and rowHints[i][hintIndex] + 1 or 1
+                rowHints[i][hintIndex] = lineStarted and rowHints[i][hintIndex] + 1 or 1
                 lineStarted = true
             elseif lineStarted then
                 hintIndex = hintIndex + 1
@@ -672,7 +830,7 @@ function NonogramScene:loadNonogramFromFile()
             fieldValue = solution[(i - 1) * dimensions[2] + j]
             
             if fieldValue == NonogramFieldState.Marked then
-                columnHints[j][hintIndex] =  lineStarted and columnHints[j][hintIndex] + 1 or 1
+                columnHints[j][hintIndex] = lineStarted and columnHints[j][hintIndex] + 1 or 1
                 lineStarted = true
             elseif lineStarted then
                 hintIndex = hintIndex + 1
@@ -741,6 +899,25 @@ function NonogramScene:draw()
 end
 
 function NonogramScene:additionalDrawingBeforeButtons()
+    self.solverMenu:draw()
+    self.solverName:draw()
+    self.iterationText:draw()
+    self.iterationValueText:draw()
+    self.currentSpeedText:draw()
+    self.executionTimeText:draw()
+    self.executionTimeValue:draw()
+end
+
+function NonogramScene:ignoreInput()
+    return self.solved or self.solver:isRunning() or self.simulation.simulating
+end
+
+function NonogramScene:clearBoard()
+    for _, nonogramField in ipairs(self.nonogramFields) do
+        if nonogramField.state ~= NonogramFieldState.Empty then
+            nonogramField:changeState(NonogramFieldState.Empty)
+        end
+    end
 end
 
 return NonogramScene
