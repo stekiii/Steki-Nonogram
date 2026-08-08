@@ -450,7 +450,7 @@ function NonogramScene:loadGraphicElements()
         table.insert(self.buttons, self.resumeSimulationButton)
     end
 
-    local defaultTime = 0.75
+    local defaultTimeStep, defaultTimeChanges = 1.25, 0.25
 
     self.simulation = {
         simulating = false,
@@ -458,11 +458,11 @@ function NonogramScene:loadGraphicElements()
         currentStep = 0,
         simulatingStep = false,
         timerBetweenSteps = Timer:new{
-            goalTime = defaultTime,
+            goalTime = defaultTimeStep,
         },
         currentChange = 0,
         timerBetweenChanges = Timer:new{
-            goalTime = defaultTime / 3
+            goalTime = defaultTimeChanges
         },
         timeModifier = 1,
         minTimeModifier = 2^-2,
@@ -856,7 +856,7 @@ end
 
 function NonogramScene:initialize()
     self:loadNonogramFromFile()
-    
+
     Scene.initialize(self)
 end
 

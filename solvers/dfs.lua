@@ -2,7 +2,6 @@ local Nonogram = require 'Nonogram'
 local NonogramField = require 'gui.NonogramField'
 
 require "love.timer"
-require "math"
 
 local maxSteps = 1000000
 local currentSteps = 0
@@ -213,7 +212,7 @@ local function verifyEnoughFieldsToCompleteCol(colState, row, col, fieldValue)
 end
 
 local function verifyRow(rowState, row, col, fieldValue)
-    
+
     local currentStateAsHints, hintIndex = rowState.currentStateAsHints, rowState.hintIndex
 
     if not verifyEnoughFieldsToCompleteRow(rowState, row, col, fieldValue) then
@@ -478,6 +477,7 @@ if success then
     )
 else
     print(solved)
+    outputChannel:push(false)
 end
 
 stepsFullPath = nil

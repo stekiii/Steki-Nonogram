@@ -345,6 +345,7 @@ if success then
     )
 else
     print(solved)
+    outputChannel:push(false)
 end
 
 stepsFullPath = nil

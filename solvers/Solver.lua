@@ -27,13 +27,17 @@ change = {
 
 SolverSourceList = {
     {
-        name = "Advanced DFS",
-        file = "solvers/dfs.lua"
+        name = "CSP / Combinations",
+        file = "solvers/csp.lua"
     },
     {
-        name = "Simple DFS",
-        file = "solvers/dfs_old.lua"
-    }
+        name = "DFS",
+        file = "solvers/dfs.lua"
+    },
+    -- {
+    --     name = "Simple DFS",
+    --     file = "solvers/dfs_old.lua"
+    -- }
 }
 
 function Solver:new(o)
